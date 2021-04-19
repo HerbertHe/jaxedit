@@ -9,22 +9,22 @@ if (!window.console) console = { log: function () {} }
 window.typejax = (function ($) {
     // TODO: typejax对象
     var typejax = {
-        totaltext: "",  // 总文本
-        totalsize: 0,   // 总大小
-        raw: "",        // 原始
-        rawsize: 0,     // 原始大小
-        totaldata: [],  // 总数据
-        totalsect: [],  // 总章节
-        innersect: [],  // 内部章节？
+        totaltext: "", // 总文本
+        totalsize: 0, // 总大小
+        raw: "", // 原始
+        rawsize: 0, // 原始大小
+        totaldata: [], // 总数据
+        totalsect: [], // 总章节
+        innersect: [], // 内部章节？
     }
 
     // TODO: updater对象
     typejax.updater = {
-        typemode: "full",  // 输入模式
-        thequeue: [],      // 队列
-        thehooks: {},      // 钩子
-        isRunning: false,  // 是否正在运行？
-        showarea: null,    // showarea？
+        typemode: "full", // 输入模式
+        thequeue: [], // 队列
+        thehooks: {}, // 钩子
+        isRunning: false, // 是否正在运行？
+        showarea: null, // showarea？
 
         // TODO: init初始化
         init: function (newtext, newsize, showarea) {
@@ -919,31 +919,36 @@ window.typejax = (function ($) {
             time,
             base = $.findScript("typejax.js")
 
+        // lexer 对象
         var lexer = {
-            snippet: "", // content of the source input
-            length: 0, // length of the source input
-            index: 0, // current position in the input
-            modend: 0, // current modend in the input
-            ended: false,
+            snippet: "", // 源输入的内容
+            length: 0, // 源输入的长度
+            index: 0, // 当前坐标
+            modend: 0, // 输入当前的mod end
+            ended: false, // ended?
 
+            // 初始化
             initialize: function (input, modstart, modend) {
-                this.snippet = input
-                this.length = input.length
-                this.index = modstart
-                this.modend = modend
-                this.ended = false
+                this.snippet = input // 片段赋值输入的内容
+                this.length = input.length // 为输入的长度
+                this.index = modstart // modstart为索引
+                this.modend = modend // modend 为 modend
+                this.ended = false // ended 为 false
             },
 
+            // 是否是最后?
             atLast: function () {
                 return this.index >= this.length || this.ended == true
                     ? true
                     : false
             },
 
+            // 是否结束？
             atEnding: function () {
                 return this.index >= this.modend ? true : false
             },
 
+            // BUG: 等会处理这个部分
             newEnding: function () {
                 for (var i = 0; i < typejax.totaldata.length; i++) {
                     if (typejax.totaldata[i][0] == this.modend) {
@@ -954,14 +959,18 @@ window.typejax = (function ($) {
                 }
             },
 
+            // 下一个token
             nextToken: function () {
                 // find next token
                 //console.log(length,index);
+                // 类型、值、place为初始索引
                 var type = "",
                     value = "",
                     place = this.index
+                // 如果是最后
                 if (this.atLast())
                     return { type: "", value: "", place: this.length }
+                // 如果结束-------------------------------------
                 if (this.atEnding()) {
                     var d = syner.nodearray
                     if (
@@ -976,90 +985,125 @@ window.typejax = (function ($) {
                     }
                 }
 
+                // 当前的字符
                 var curchar = this.snippet.charAt(this.index)
+                // 下一个字符 nextchar,下一个 nextcode, i = 0
                 var nextchar = "",
                     nextcode = 0,
                     i = 0
 
+                // 如果当前的char是\\
                 if (curchar == "\\") {
                     type = "escape"
                     value = "\\"
                 } else if (curchar == "%") {
+                    // 如果当前的字符为%
                     type = "comment"
                     value = "%"
                 } else if (curchar == " ") {
+                    // 如果当前的字符为空格
                     type = "space"
                     value = " "
                 } else if (curchar == "\n") {
+                    // 如果当前字符是换行
                     type = "space"
                     value = "\n"
                 } else if (curchar == "\r") {
+                    // 如果当前字符为回车
+                    // 获取下一个字符
                     nextchar = this.snippet.charAt(this.index + 1)
+                    // 如果下一个字符为回车
                     if (nextchar == "\n") {
                         // \r\n in ie
                         type = "space"
                         value = "\n"
                         this.index += 1
                     } else {
+                        // 否则
                         type = "space"
                         value = "\n"
                     }
                 } else if (/[\!-\$&-\/\:-@\[-`\{-~]/.test(curchar)) {
+                    // 如果当前字符为特殊字符
                     type = "special"
                     value = curchar
                 } else if (/[a-zA-Z]/.test(curchar)) {
+                    // 如果当前字符为字母
                     i = this.index
+                    // 获取当前的索引值，直到下一个字符不是字母
                     do {
                         i += 1
                         nextchar = this.snippet.charAt(i)
                     } while (/[a-zA-Z]/.test(nextchar))
+                    // 类型为字母
                     type = "alphabet"
+                    // 获取子串，从开始一直到累计长度
                     value = this.snippet.substring(this.index, i)
+                    // 更改index索引
                     this.index = i - 1
                 } else if (/[0-9]/.test(curchar)) {
+                    // 索引设为零
                     i = this.index
                     do {
                         i += 1
                         nextchar = this.snippet.charAt(i)
                     } while (/[0-9]/.test(nextchar))
+                    // 类型为number
                     type = "number"
+                    // 获取子串
                     value = this.snippet.substring(this.index, i)
+                    // 更改index索引
                     this.index = i - 1
                 } else {
+                    // i为index索引
+                    // ASCII码大于127为Unicode
                     i = this.index
                     do {
                         i += 1
                         nextcode = this.snippet.charCodeAt(i)
                     } while (nextcode > 127)
+                    // 类型为Unicode
                     type = "unicode"
                     value = this.snippet.substring(this.index, i)
+                    // 更改index索引
                     this.index = i - 1
                 }
 
+                // 索引自增
                 this.index += 1
                 //console.log(type, value);
                 return { type: type, value: value, place: place }
             },
 
+            // 滚回去，index自减
             goBack: function (i) {
                 this.index -= i
             },
         }
 
+        // TODO: syner对象
         var syner = {
-            innertree: {},
-            type: "",
-            value: "",
-            place: -1,
-            mathenv: "",
-            intabular: false,
-            omitspace: false,
+            innertree: {}, // inner树
+            type: "", // 类型
+            value: "", // 值
+            place: -1, // place
+            mathenv: "", // mathenv
+            intabular: false, // 制表
+            omitspace: false, // 省略空间
 
             // TODO: 分析
+            /**
+             *
+             * @param {*} input 输入
+             * @param {*} modstart mod start
+             * @param {*} modend mod end
+             */
             analysis: function (input, modstart, modend) {
                 //console.log("initialize lexer");
+                // 初始化词法分析器
                 lexer.initialize(input, modstart, modend)
 
+                // 初始化语法树
                 this.initTree()
                 this.mathenv = ""
                 this.omitspace = false
@@ -2030,6 +2074,7 @@ window.typejax = (function ($) {
 
             // TODO: 初始化树
             initTree: function () {
+                // 最顶级的树
                 this.innertree = {
                     // top level
                     mode: "main",
@@ -2041,20 +2086,29 @@ window.typejax = (function ($) {
                     parent: null,
                     childs: [],
                 }
+                // nodeplace为当前的树
                 this.nodeplace = this.innertree
+                // 等级为0
                 this.nodelevel = 0
+                // 节点数组
                 this.nodearray = []
             },
 
-            // TODO: 打开子
+            // TODO: 开启子节点
             openChild: function (type, name, from, mark) {
+                // nodeplace赋值给parent
                 var parent = this.nodeplace
+                // 如果父元素不存在
                 if (!parent) {
+                    // 输出打开子错误
                     typejax.message.log("node", "openChild: wrong nodeplace!")
                     return
                 }
+                // 打开子
                 typejax.message.log("node", "OpenChild: ", type, name, from)
+                // 初始化节点node对象
                 var node = {
+                    // 类型、名称、模式、来源、值、参数类型、参数数组、父、子
                     type: type,
                     name: name,
                     mode: this.getGroupMode(name),
@@ -2065,26 +2119,35 @@ window.typejax = (function ($) {
                     parent: parent,
                     childs: [],
                 }
+                // 将节点对象push到父的子
                 parent.childs.push(node)
 
+                // 更改nodeplace为当前的节点
                 this.nodeplace = node
+                // 节点层级加一
                 this.nodelevel += 1
+                // 节点数组push
                 this.nodearray.push(node)
 
+                // 如果节点参数的类型长度为1并且类型为||
                 if (node.argtype.length == 1 && node.argtype[0] == "||") {
                     node.argarray.push(node)
+                    // 节点名称为group
                 } else if (node.name == "group") {
                     node.argarray.push(node)
                 }
+                // 如果mark存在
                 if (mark) {
                     parent.argarray.push(node)
                 } else if (
+                    // 如果父参数的最后一项为||
                     parent.argtype &&
                     parent.argtype[parent.argarray.length] === "||"
                 ) {
                     parent.argarray.push(parent)
                 }
 
+                // 打印节点信息
                 typejax.message.log(
                     "node",
                     "nodelevel:",
@@ -2096,13 +2159,18 @@ window.typejax = (function ($) {
                 return node
             },
 
+            // 关闭子节点，传入position
             closeChild: function (position) {
+                // 获取nodeplace为node
                 var node = this.nodeplace
+                // node的to指向position
                 node.to = position
+                // 如果node不存在，报错
                 if (!node) {
                     typejax.message.log("node", "closeChild: wrong nodeplace!")
                     return
                 }
+                // 关闭node
                 typejax.message.log(
                     "node",
                     "CloseChild:",
@@ -2110,14 +2178,20 @@ window.typejax = (function ($) {
                     node.name,
                     node.to
                 )
+                // node.from >= node.to ？
+                // node父节点的子节点射出最后一个
                 if (node.from >= node.to) {
                     //console.log("closeChild: empty group " + node.name);
                     node.parent.childs.pop()
                 }
+                // 把nodeplace改到父节点
                 this.nodeplace = this.nodeplace.parent
+                // 节点层级-1
                 this.nodelevel -= 1
+                // 节点数组射出最后一个
                 this.nodearray.pop()
 
+                // 如果节点的模式是inline或者，节点的名称是bmath
                 if (node.mode == "inline" || node.name == "bmath") {
                     if (
                         node.name != "{}" &&
@@ -2138,8 +2212,10 @@ window.typejax = (function ($) {
                         node.parent.childs.push(textnode)
                     }
                 } else if (node.mode == "block" && node.name != "bmath") {
+                    // 如果节点的模式是块节点，名称也不是bmath
                     /*node.childs[node.childs.length -1].to = node.to;*/
                 }
+                // 打印node的层级
                 typejax.message.log("node", "nodelevel:", this.nodelevel)
                 //this.printTree(this.innertree);
             },
@@ -2154,6 +2230,7 @@ window.typejax = (function ($) {
                 this.nodelevel -= 1
             },
 
+            // 打印树
             printTree: function (tree, spaces) {
                 if (!spaces) spaces = ""
                 that.message.log(
@@ -2169,12 +2246,15 @@ window.typejax = (function ($) {
                 }
             },
 
+            // 新建Text节点
             createTextNode: function (node) {
+                // 如果节点的mode不是main，节点的名称不是bmath、imath
                 if (
                     node.mode != "main" &&
                     node.name != "bmath" &&
                     node.name != "imath"
                 ) {
+                    // 类型是env、名称是行内文本、模式也是行内
                     var textnode = {
                         type: "env",
                         name: "itext",
@@ -2185,14 +2265,17 @@ window.typejax = (function ($) {
                         parent: node,
                         childs: [],
                     }
+                    // 向节点的子节点push
                     node.childs.push(textnode)
                 }
             },
 
+            // 拓展参数值
             appendArgsValue: function (index, value) {
                 var node = this.nodeplace
             },
 
+            // 拓展值
             appendValue: function (node, value, position) {
                 if (!node) {
                     console.log("appendValue: wrong node!")
@@ -2209,12 +2292,14 @@ window.typejax = (function ($) {
                 }
             },
 
+            // 拓展文本
             appendText: function (value, position) {
                 var node = this.nodeplace
                 //console.log("appendText:", node.mode, value);
                 this.appendValue(node, value, position)
             },
 
+            // 添加括号
             addBracket: function (bracket, position) {
                 var parent, node, i
                 switch (bracket) {
@@ -2490,6 +2575,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // 添加文本
             addText: function (value, position) {
                 //if (arguments.length == 1) console.log("no position for " + value);
                 //console.log("addtext: start for", this.nodeplace.name, this.nodeplace.argtype, value);
@@ -2589,6 +2675,7 @@ window.typejax = (function ($) {
                 return true
             },
 
+            // 获取参数类型
             getArgsType: function (type, name) {
                 var same = this.getGroupSame(name),
                     group,
@@ -2610,6 +2697,7 @@ window.typejax = (function ($) {
                 if (group) return group.outs
             },
 
+            // 获取组模式
             getGroupMode: function (name) {
                 var same = this.getGroupSame(name)
                 var group =
@@ -2627,6 +2715,7 @@ window.typejax = (function ($) {
                 return name
             },
 
+            // 读取参数
             readParameters: function (node) {
                 var arg = node.argarray,
                     result = [],
@@ -2644,6 +2733,7 @@ window.typejax = (function ($) {
                 return result
             },
 
+            // 添加包
             addPackage: function (pkg) {
                 var info = packages.info,
                     list = packages.list,
@@ -2775,7 +2865,7 @@ window.typejax = (function ($) {
                     return result
                 },
             },
-
+            // 渲染器
             renderers: {
                 cache: { env: {}, cmd: {} },
                 clear: function () {
@@ -2799,13 +2889,17 @@ window.typejax = (function ($) {
             },
         }
 
+        // latex对象
         var latex = {
+            // cmd的值
             cmdvalues: {
                 documentclass: "article",
             },
+            // counters
             counters: {
                 theorem: { content: "'\\0000a0' counter(theorem) '\\0000a0'" },
             },
+            // subconters
             subcounters: {},
             theorems: {
                 theorem: { thmname: "Theorem", counter: "theorem" },
@@ -2813,6 +2907,7 @@ window.typejax = (function ($) {
             identifier: 0,
         }
 
+        // 拓展
         var extend = function (
             pkgfile,
             definitions,
@@ -2846,75 +2941,110 @@ window.typejax = (function ($) {
             }
         }
 
-        /* group.mode
-         * main group could include main and block groups
-         * block group cuuld include inline groups and bmath elements
-         * inline group could include inline commands and itext/imath elements
-         * bmath element should include display math directly
-         * imath element should include inline math directly
+        /**
+         * group.mode
+         * main组可以包含main和block组
+         * block组可以包含inline组和bmath元素
+         * inline组可以包含inline commands和itext/imath元素
+         * bmath元素应当被直接显示为math
+         * imath元素应该直接包含行内数学
          */
-        // group.outs: list of groups which could not include it
+        // group.outs: 列出不能被包含
 
         ;(function () {
+            // 定义
             var definitions = {
+                // 命令
                 command: {
+                    // 作者
                     author: { mode: "inline", args: ["[]", "{}"] },
+                    // 章节
                     chapter: "section",
+                    // 取消章节
                     "chapter*": "section",
+                    // 日期
                     date: { mode: "inline", args: ["{}"] },
+                    // 文档类
                     documentclass: { mode: "inline", args: ["[]", "{}"] },
+                    // 组
                     group: { mode: "inline", args: ["{}"] },
+                    // maketitle
                     maketitle: { mode: "block", args: [] },
+                    // newcounter
                     newcounter: { mode: "inline", args: ["{}", "[]"] },
+                    // 定理？
                     newtheorem: {
                         mode: "inline",
                         args: ["{}", "[]", "{}", "[]"],
                     },
+                    // 取消定理
                     "newtheorem*": { mode: "inline", args: ["{}", "{}"] },
+                    // 段落
                     paragraph: { mode: "inline", args: ["[]", "{}"] },
                     "paragraph*": "paragraph",
+                    // 部分
                     part: "section",
                     "part*": "section",
+                    // 章节
                     section: { mode: "block", args: ["[]", "{}"] },
                     "section*": "section",
+                    // 子段落
                     subparagraph: "paragraph",
                     "subparagraph*": "paragraph",
+                    // 子章节
                     subsection: "section",
                     "subsection*": "section",
+                    // 孙章节
                     subsubsection: "section",
                     "subsubsection*": "section",
+                    // 表格tableofcontents
                     tableofcontents: {
                         mode: "block",
                         args: ["[]"],
                         outs: ["par"],
                     },
+                    // textbf
                     textbf: { mode: "inline", args: ["{}"] },
+                    // thanks
                     thanks: { mode: "inline", args: ["{}"] },
+                    // 标题
                     title: { mode: "inline", args: ["[]", "{}"] },
+                    // 使用包
                     usepackage: { mode: "inline", args: ["[]", "{}"] },
                 },
+                // 环境
                 environment: {
+                    // bmath
                     bmath: { mode: "block" },
+                    // center,居中?
                     center: {
                         mode: "main",
                         args: ["||"],
                         outs: ["par", "center"],
                     },
+                    // 列表
                     enumerate: { mode: "block", args: ["[]", "||"] },
+                    // 子项
                     item: { mode: "main", args: ["<>", "||"] },
+                    // 逐项
                     itemize: { mode: "block", args: ["[]", "||"] },
+                    // par?
                     par: {
                         mode: "block",
                         args: ["||"],
                         outs: ["par", "section"],
                     },
+                    // preamble
                     preamble: { mode: "main", args: ["||"] },
+                    // tabular
                     tabular: { mode: "inline", args: ["{}", "||"] },
+                    // 定理
                     theorem: {
                         mode: "main",
                         args: ["[]", "||"],
                         outs: ["par", "theorem"],
                     },
+                    // verbatim
                     verbatim: { mode: "block", args: ["||"], outs: ["par"] },
                 },
             }
@@ -3104,6 +3234,7 @@ window.typejax = (function ($) {
                     }
                 },
 
+                // TODO: cmdSection
                 cmdSection: function (node) {
                     var csname = node.name,
                         argarray = node.argarray
@@ -3460,8 +3591,11 @@ window.typejax = (function ($) {
         // 开始
         function start() {
             console.log("---------------- start parser ----------------")
+            // 分析
             syner.analysis(input, modstart, modend)
+            // 打印树
             syner.printTree(syner.innertree)
+            // 内部树子节点获取
             var childs = syner.innertree.childs,
                 out = [],
                 child,
@@ -3518,7 +3652,9 @@ window.typejax = (function ($) {
         return { latex: latex, load: load, extend: extend }
     })(typejax)
 
+    // TODO: builder
     typejax.builder = function (tree, flag) {
+        // open close html
         var open,
             close,
             html = ""
@@ -3600,6 +3736,7 @@ window.typejax = (function ($) {
         }
     }
 
+    // TODO: 消息处理
     typejax.message = {
         debug: "none",
 
