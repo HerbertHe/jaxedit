@@ -9,22 +9,22 @@ if (!window.console) console = { log: function () {} }
 window.typejax = (function ($) {
     // TODO: typejax对象
     var typejax = {
-        totaltext: "",
-        totalsize: 0,
-        raw: "",
-        rawsize: 0,
-        totaldata: [],
-        totalsect: [],
-        innersect: [],
+        totaltext: "",  // 总文本
+        totalsize: 0,   // 总大小
+        raw: "",        // 原始
+        rawsize: 0,     // 原始大小
+        totaldata: [],  // 总数据
+        totalsect: [],  // 总章节
+        innersect: [],  // 内部章节？
     }
 
     // TODO: updater对象
     typejax.updater = {
-        typemode: "full",
-        thequeue: [],
-        thehooks: {},
-        isRunning: false,
-        showarea: null,
+        typemode: "full",  // 输入模式
+        thequeue: [],      // 队列
+        thehooks: {},      // 钩子
+        isRunning: false,  // 是否正在运行？
+        showarea: null,    // showarea？
 
         // TODO: init初始化
         init: function (newtext, newsize, showarea) {
@@ -303,7 +303,9 @@ window.typejax = (function ($) {
         },
     }
 
+    // TODO: bridge对象
     typejax.bridge = {
+        // 宏
         macros: {},
 
         // TODO: 拓展宏
@@ -843,6 +845,7 @@ window.typejax = (function ($) {
         },
     }
 
+    // TODO: tinyparser句法分析
     typejax.tinyParser = function (input, modstart, modend) {
         var data = [],
             text = input.slice(modstart, modend)
@@ -883,6 +886,7 @@ window.typejax = (function ($) {
             "vmatrix",
             "Vmatrix",
         ]
+        // begin环境正则
         var re = /(?:\n|\r\n)?\\begin\{([\w\*]+)\}([\w\W]*?)\\end\{\1\}(?:\n|\r\n)?/g
         text = text.replace(re, function (match, p1, p2, offset) {
             if ($.inArray(p1, dmaths) != -1) {
@@ -905,6 +909,7 @@ window.typejax = (function ($) {
         return [data, text]
     }
 
+    // TODO: 句法分析
     typejax.parser = (function (that) {
         var input,
             modstart,
@@ -1417,6 +1422,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 特殊token处理
             tokenSpecial: function () {
                 this.omitspace = false
                 switch (this.value) {
@@ -1475,16 +1481,19 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 字母token处理
             tokenAlphabet: function () {
                 this.omitspace = false
                 this.addText(this.value, this.place)
             },
 
+            // TODO: 数字token处理
             tokenNumber: function () {
                 this.omitspace = false
                 this.addText(this.value, this.place)
             },
 
+            // TODO: 处理unicode
             tokenUnicode: function () {
                 this.omitspace = false
                 this.addText(this.value, this.place)
@@ -1502,6 +1511,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // 执行命令
             doCommand: function (node) {
                 var name = node.name,
                     same = this.getGroupSame(name)
@@ -1562,6 +1572,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: begin环境块
             cmdsBeginEnd: function (csname, envname, where) {
                 var mathmode = "bmath",
                     mathdelim = true
@@ -1751,6 +1762,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 环境执行
             doEnvironment: function (node) {
                 var name = node.name,
                     same = this.getGroupSame(name)
@@ -1764,6 +1776,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 获取数学的dollar符号
             getMathDollar: function (position) {
                 if (this.mathenv == "$") {
                     this.closeOldGroup(position + 1)
@@ -1812,6 +1825,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 逐字？
             getVerbatim: function (envname) {
                 //console.log("verbatim");
                 var t1 = lexer.nextToken()
@@ -1856,6 +1870,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 开始group
             beginGroup: function (type, name, thispos, nextpos) {
                 while (
                     this.nodelevel > 0 &&
@@ -1871,6 +1886,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO： 关闭group
             endGroup: function (type, name, thispos, nextpos) {
                 var mode = this.getGroupMode(name)
                 if (type == "env") {
@@ -1901,6 +1917,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 关闭先前的group
             closeOldGroup: function (position) {
                 //console.log("close:", position);
                 var node = this.nodeplace,
@@ -1920,6 +1937,7 @@ window.typejax = (function ($) {
                 //console.log("close:", this.nodearray);
             },
 
+            // TODO: 打开一个新的group
             openNewGroup: function (type, name, position) {
                 //console.log("open: ", type, name, position);
                 var args = this.getArgsType(type, name)
@@ -1937,6 +1955,7 @@ window.typejax = (function ($) {
                 //console.log("open: ", this.nodearray);
             },
 
+            // TODO: 关闭旧的数学
             closeOldMath: function (position) {
                 if (this.mathenv != "") {
                     this.closeOldGroup(position)
@@ -1944,6 +1963,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 关闭旧的命令
             closeOldCmds: function (position) {
                 var node
                 while (this.nodelevel > 0) {
@@ -1956,6 +1976,7 @@ window.typejax = (function ($) {
                 }
             },
 
+            // TODO: 关闭空参数
             closeEmptyArg: function (position) {
                 if (this.nodelevel > 0) {
                     var node = this.nodeplace
@@ -2007,6 +2028,7 @@ window.typejax = (function ($) {
                 //console.log("doThisGroup: ", this.nodearray);
             },
 
+            // TODO: 初始化树
             initTree: function () {
                 this.innertree = {
                     // top level
@@ -2024,6 +2046,7 @@ window.typejax = (function ($) {
                 this.nodearray = []
             },
 
+            // TODO: 打开子
             openChild: function (type, name, from, mark) {
                 var parent = this.nodeplace
                 if (!parent) {
@@ -2695,6 +2718,7 @@ window.typejax = (function ($) {
                 this.buildCounters(name, value)
             },
 
+            // TODO: 命题、公式
             makeTheorem: function (node) {
                 if (node.childs.length == 0) return //fix for empty content in theorems
                 var envname = node.name,
@@ -2729,6 +2753,7 @@ window.typejax = (function ($) {
                 node.name = "theorem"
             },
 
+            // 定义
             definitions: {
                 cache: { environment: {}, command: {} },
                 clear: function () {
@@ -2894,6 +2919,7 @@ window.typejax = (function ($) {
                 },
             }
 
+            // TODO: 渲染器
             var renderers = {
                 cmdAuthor: function (node) {
                     this.renderers.find("cmd", "title").call(this, node)
@@ -3331,6 +3357,7 @@ window.typejax = (function ($) {
             extend("article", definitions, renderers, null, counters)
         })()
 
+        // TODO: 包
         var packages = {
             info: {
                 amsart: { file: "amscls/amscls" },
@@ -3430,6 +3457,7 @@ window.typejax = (function ($) {
             list: { used: [], current: [], missing: [], existing: [] },
         }
 
+        // 开始
         function start() {
             console.log("---------------- start parser ----------------")
             syner.analysis(input, modstart, modend)
@@ -3453,12 +3481,14 @@ window.typejax = (function ($) {
             return out
         }
 
+        // 停止
         function stop() {
             console.log("---------------- stop parser ----------------")
             lexer.ended = true
             done = false
         }
 
+        // 加载
         function load(input1, modstart1, modend1, callback1) {
             input = input1
             modstart = modstart1
@@ -3475,10 +3505,12 @@ window.typejax = (function ($) {
             }
         }
 
+        // 重新加载
         function reload() {
             callback(null)
         }
 
+        // 延时加载
         function delayReload() {
             time = new Date().getTime()
         }
