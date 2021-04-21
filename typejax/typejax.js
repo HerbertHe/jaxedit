@@ -970,7 +970,7 @@ window.typejax = (function ($) {
                 // 如果是最后
                 if (this.atLast())
                     return { type: "", value: "", place: this.length }
-                // 如果结束-------------------------------------
+                // 如果手动结束触发
                 if (this.atEnding()) {
                     var d = syner.nodearray
                     if (
@@ -2270,7 +2270,7 @@ window.typejax = (function ($) {
                 }
             },
 
-            // 拓展参数值
+            // BUG 拓展参数值 这里并没有处理argsValue参数
             appendArgsValue: function (index, value) {
                 var node = this.nodeplace
             },
